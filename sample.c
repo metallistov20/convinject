@@ -157,16 +157,20 @@ static void sizechanged(void){
     setsignal();
 }
 
-static void select_loop(ssh_session session,ssh_channel channel){
+static void select_loop(ssh_session session,ssh_channel channel)
+{
     ssh_connector connector_in, connector_out, connector_err;
     ssh_event event = ssh_event_new();
+int iIdxDbg;
 
+//printf("[%s][%s][%d]: doing STDIN \n", __FILE__, __func__, iIdxDbg++);
     /* stdin */
     connector_in = ssh_connector_new(session);
     ssh_connector_set_out_channel(connector_in, channel, SSH_CONNECTOR_STDOUT);
     ssh_connector_set_in_fd(connector_in, 0);
     ssh_event_add_connector(event, connector_in);
 
+//printf("[%s][%s][%d]: doing STDOUT \n", __FILE__, __func__, iIdxDbg++);
     /* stdout */
     connector_out = ssh_connector_new(session);
     ssh_connector_set_out_fd(connector_out, 1);
@@ -174,19 +178,27 @@ static void select_loop(ssh_session session,ssh_channel channel){
     ssh_event_add_connector(event, connector_out);
 
     /* stderr */
+//printf("[%s][%s][%d]: doing STDERR \n", __FILE__, __func__, iIdxDbg++);
     connector_err = ssh_connector_new(session);
     ssh_connector_set_out_fd(connector_err, 2);
     ssh_connector_set_in_channel(connector_err, channel, SSH_CONNECTOR_STDERR);
     ssh_event_add_connector(event, connector_err);
 
     while(ssh_channel_is_open(channel)){
+//printf("[%s][%s][%d]: cycle; polling \n", __FILE__, __func__, iIdxDbg++);
         if(signal_delayed)
+	{
+//printf("[%s][%s][%d]: cycle; polling; sizechanged \n", __FILE__, __func__, iIdxDbg++);
             sizechanged();
+	}
         ssh_event_dopoll(event, 60000);
     }
+
+//printf("[%s][%s][%d]: removing IN \n", __FILE__, __func__, iIdxDbg++);
     ssh_event_remove_connector(event, connector_in);
     ssh_event_remove_connector(event, connector_out);
     ssh_event_remove_connector(event, connector_err);
+//printf("[%s][%s][%d]: removed ERR \n", __FILE__, __func__, iIdxDbg++);
 
     ssh_connector_free(connector_in);
     ssh_connector_free(connector_out);
@@ -194,37 +206,57 @@ static void select_loop(ssh_session session,ssh_channel channel){
 
     ssh_event_free(event);
     ssh_channel_free(channel);
+printf("[%s][%s][%d]: finished \n", __FILE__, __func__, iIdxDbg++);
 }
 
 static void shell(ssh_session session){
     ssh_channel channel;
     struct termios terminal_local;
     int interactive=isatty(0);
+
+int iIdxDbg; 
+
     channel = ssh_channel_new(session);
     if(interactive){
         tcgetattr(0,&terminal_local);
         memcpy(&terminal,&terminal_local,sizeof(struct termios));
     }
+//printf("[%s][%s][%d]: ssh_channel_open_session \n", __FILE__, __func__, iIdxDbg++);
+
     if(ssh_channel_open_session(channel)){
         printf("error opening channel : %s\n",ssh_get_error(session));
         return;
     }
     chan=channel;
+
+//printf("[%s][%s][%d]: ssh_channel_request_pty,  interactive=<%d>, channel=<%p>\n", __FILE__, __func__, iIdxDbg++, interactive, channel);
+
     if(interactive){
         ssh_channel_request_pty(channel);
         sizechanged();
     }
+//printf("[%s][%s][%d]: ssh_channel_request_shell, channel=<%p>\n", __FILE__, __func__, iIdxDbg++, channel);
+
     if(ssh_channel_request_shell(channel)){
         printf("Requesting shell : %s\n",ssh_get_error(session));
         return;
     }
+
+//printf("[%s][%s][%d]: cfmakeraw-tcsetattr-setsignal, interactive=<%d>\n", __FILE__, __func__, iIdxDbg++, interactive);
+
     if(interactive){
         cfmakeraw(&terminal_local);
         tcsetattr(0,TCSANOW,&terminal_local);
         setsignal();
     }
+
+//printf("[%s][%s][%d]: signal-select_loop, interactive=<%d>\n", __FILE__, __func__, iIdxDbg++, interactive);
+
     signal(SIGTERM,do_cleanup);
     select_loop(session,channel);
+
+//printf("[%s][%s][%d]: AFTER select_loop, interactive=<%d>\n", __FILE__, __func__, iIdxDbg++, interactive);
+
     if(interactive)
     	do_cleanup(0);
 }
