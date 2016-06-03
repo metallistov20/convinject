@@ -27,6 +27,9 @@ MINOR := 0
 
 NAME:= ssh
 NAME_A := ./access_srv1
+PWD=$(shell pwd)
+
+
 
 VERSION := $(MAJOR).$(MIDDLE).$(MINOR)
 
@@ -36,7 +39,7 @@ lib: ./shared/lib$(NAME).so.$(VERSION)
 
 $(NAME_A):	./shared/lib$(NAME).so
 		$(CC) -I/home/mkn/_libssh/libssh/include  ./sample.c ./authentication.c ./knownhosts.c   -o $@ -L./shared -l$(NAME) \
-		 -Wl,--rpath-link /home/mkn/convinject1/shared  -Wl,--rpath /home/mkn/convinject1/shared
+		 -Wl,--rpath-link $(PWD)/shared  -Wl,--rpath $(PWD)/shared
 
 clean:
 	$(RM) $(NAME_A) *.o *.so* *~
