@@ -218,11 +218,16 @@ int iIdxDbg;
 
 	while(ssh_channel_is_open(channel))
 	{
+fwrite("show arp ?\n",  sizeof(char), ( strlen("show arp ?\n")+1 ) , stdin /* stdout */ );
+fwrite("\r",  sizeof(char), ( strlen("\r")+1 ) , stdin /* stdout */ );
+//fflush( stdin /* stdout */ );
+signal_delayed = 1;
+
 //printf("[%s][%s][%d]: cycle; polling \n", __FILE__, __func__, iIdxDbg++);
 		if(signal_delayed)
 		{
 //printf("[%s][%s][%d]: cycle; polling; sizechanged \n", __FILE__, __func__, iIdxDbg++);
-		sizechanged();
+			sizechanged();
 		}
 
 		ssh_event_dopoll(event, 60000);
