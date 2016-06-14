@@ -125,7 +125,7 @@ int i;
 
 	return 0;
 }
-
+/*
 #ifndef HAVE_CFMAKERAW
 static void cfmakeraw(struct termios *termios_p)
 {
@@ -140,26 +140,28 @@ static void cfmakeraw(struct termios *termios_p)
 	termios_p->c_cflag |= CS8;
 }
 #endif
+*/
 
-
+/*
 static void do_cleanup(int i)
 {
-/* unused variable */
+
 (void) i;
 
 	tcsetattr(0,TCSANOW,&terminal);
 }
+*/
 
 static void do_exit(int i)
 {
-/* unused variable */
 (void) i;
 
-	do_cleanup(0);
+//	do_cleanup(0);
 
 	exit(0);
 }
 
+/*
 ssh_channel chan;
 
 int signal_delayed=0;
@@ -188,80 +190,7 @@ struct winsize win = { 0, 0, 0, 0 };
 
 	setsignal();
 }
-
-static void select_loop(ssh_session session,ssh_channel channel)
-{
-ssh_connector connector_in, connector_out, connector_err;
-ssh_event event = ssh_event_new();
-int iIdxDbg;
-//-----------
-/*
-long length;
-int fh;
-char buffer[20];
-FILE *fp;
 */
-//-----------
-
-FILE * pFile = fopen ("./local_data.txt", "w+"); if (NULL != pFile) {//writing to file, instead of STDIN
-
-int iFileDescr = fileno(pFile);//writing to file, instead of STDIN
-printf("[%s][%s][%d]: DESCRIPTOR == <%d>\n", __FILE__, __func__, iIdxDbg++ , iFileDescr);//writing to file, instead of STDIN
-
-
-
-	/* stdin */
-	connector_in = ssh_connector_new(session);
-	ssh_connector_set_out_channel(connector_in, channel, SSH_CONNECTOR_STDOUT);
-	ssh_connector_set_in_fd(connector_in,  /* 0 */  iFileDescr /*fh*/);
-	ssh_event_add_connector(event, connector_in);
-
-//printf("[%s][%s][%d]: doing STDOUT \n", __FILE__, __func__, iIdxDbg++);
-	/* stdout */
-	connector_out = ssh_connector_new(session);
-	ssh_connector_set_out_fd(connector_out,  1 );
-	ssh_connector_set_in_channel(connector_out, channel, SSH_CONNECTOR_STDOUT);
-	ssh_event_add_connector(event, connector_out);
-
-    /* stderr */
-//printf("[%s][%s][%d]: doing STDERR \n", __FILE__, __func__, iIdxDbg++);
-	connector_err = ssh_connector_new(session);
-	ssh_connector_set_out_fd(connector_err, 2);
-	ssh_connector_set_in_channel(connector_err, channel, SSH_CONNECTOR_STDERR);
-	ssh_event_add_connector(event, connector_err);
-
-	while(ssh_channel_is_open(channel))
-	{
-//printf("[%s][%s][%d]: cycle; polling \n", __FILE__, __func__, iIdxDbg++);
-		if(signal_delayed)
-		{
-//printf("[%s][%s][%d]: cycle; polling; sizechanged \n", __FILE__, __func__, iIdxDbg++);
-			sizechanged();
-		}
-
-		ssh_event_dopoll(event, 60000);
-    	}
-
-//fclose(pFile);// writing to a file, instead of STDIN
-//close(fh);
-} //writing to file, instead of STDIN
-
-//printf("[%s][%s][%d]: removing IN \n", __FILE__, __func__, iIdxDbg++);
-	ssh_event_remove_connector(event, connector_in);
-	ssh_event_remove_connector(event, connector_out);
-	ssh_event_remove_connector(event, connector_err);
-//printf("[%s][%s][%d]: removed ERR \n", __FILE__, __func__, iIdxDbg++);
-
-	ssh_connector_free(connector_in);
-	ssh_connector_free(connector_out);
-	ssh_connector_free(connector_err);
-
-	ssh_event_free(event);
-	ssh_channel_free(channel);
-
-//printf("[%s][%s][%d]: finished \n", __FILE__, __func__, iIdxDbg++);
-
-}
 
 static void shell(ssh_session session)
 {
@@ -288,17 +217,17 @@ int iIdxDbg;
 		return;
 	}
 
-	chan=channel;
+//	chan=channel;
 
 //printf("[%s][%s][%d]: ssh_channel_request_pty,  interactive=<%d>, channel=<%p>\n", __FILE__, __func__, iIdxDbg++, interactive, channel);
 
-	if(interactive)
+/*	if(interactive)
 	{
 		ssh_channel_request_pty(channel);
 
 		sizechanged();
 	}
-
+*/
 //printf("[%s][%s][%d]: ssh_channel_request_shell, channel=<%p>\n", __FILE__, __func__, iIdxDbg++, channel);
 
 	if(ssh_channel_request_shell(channel))
@@ -312,35 +241,15 @@ int iIdxDbg;
 
 printf("[%s][%s][%d]: cfmakeraw-tcsetattr-setsignal, interactive=<%d>\n", __FILE__, __func__, iIdxDbg++, interactive);
 
-#if (1)
+
 char buffer[16];
 int nbytes;
 int rc;
-/*
-	nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
-printf("0 after read , nbytes = %d\n", nbytes);
-	memcpy(buffer, "show arp ?", strlen ("show arp ?") + 1);
-_a:
-printf("1\n");
-	ssh_channel_write(channel, buffer, sizeof(buffer) );
-printf("2\n");
-*/
 
-///////////////////////
+//////////////////////////////////////////////////////////////////
 
-char * arraychen[4] = {"?", "show ?", "tracert ?", 0};
-int _i=0;
-
-	while(arraychen[_i])
 	{
-//////////////////////////////////////////////////////////////////
-
-		//fwrite(buffer, bytes, sizeof(char),stdout);
-		//ssh_channel_write(channel, "?", strlen ("?") + 1  );
-		ssh_channel_write(channel, arraychen[_i], strlen (arraychen[_i]) + 1  );
-
-
-//////////////////////////////////////////////////////////////////
+		ssh_channel_write(channel, "?", strlen ("?") + 1  );
 
 		nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
 
@@ -356,74 +265,46 @@ printf("i can't \n");
 		}
 printf("READOUT END\n");
 
-
-
-/*		if (nbytes < 0)
+		if (nbytes < 0)
 		{
 			return;
 		}
 
-*/
-		_i++;
-
 	}
 
-///////////////////////
+//////////////////////////////////////////////////////////////////
 
-#else
-
-	if(interactive)
 	{
-		cfmakeraw(&terminal_local);
+		ssh_channel_write(channel, "?", strlen ("?") + 1  );
 
-		tcsetattr(0,TCSANOW,&terminal_local);
+		nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
 
-		setsignal();
+printf("READOUT START\n");
+		while (nbytes > 0)
+		{
+			if (fwrite(buffer, 1, nbytes, stdout) != (unsigned int) nbytes)
+			{
+printf("i can't \n");
+				return;
+			}
+			nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
+		}
+printf("READOUT END\n");
+
+		if (nbytes < 0)
+		{
+			return;
+		}
+
 	}
 
-//printf("[%s][%s][%d]: signal-select_loop, interactive=<%d>\n", __FILE__, __func__, iIdxDbg++, interactive);
 
-	signal(SIGTERM,do_cleanup);
 
-	select_loop(session,channel);
-
-//printf("[%s][%s][%d]: AFTER select_loop, interactive=<%d>\n", __FILE__, __func__, iIdxDbg++, interactive);
-#endif /* (1) */
-
-	if(interactive)
+/* 	if(interactive)
 
 		do_cleanup(0);
 
-
-}
-
-static void batch_shell(ssh_session session)
-{
-ssh_channel channel;
-char buffer[1024];
-int i,s=0;
-
-	for(i=0;i<MAXCMD && cmds[i];++i)
-	{
-		s+=snprintf(buffer+s,sizeof(buffer)-s,"%s ",cmds[i]);
-
-		free(cmds[i]);
-
-		cmds[i] = NULL;
-	}
-
-	channel=ssh_channel_new(session);
-
-	ssh_channel_open_session(channel);
-
-	if(ssh_channel_request_exec(channel,buffer))
-	{
-		printf("error executing \"%s\" : %s\n",buffer,ssh_get_error(session));
-
-		return;
-	}
-
-	select_loop(session,channel);
+*/
 }
 
 static int client(ssh_session session)
@@ -477,10 +358,7 @@ int state;
 		return -1;
 	}
 
-	if(!cmds[0])
-		shell(session);
-	else
-		batch_shell(session);
+	shell(session);
 
 	return 0;
 }
