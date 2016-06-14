@@ -194,18 +194,32 @@ static void select_loop(ssh_session session,ssh_channel channel)
 ssh_connector connector_in, connector_out, connector_err;
 ssh_event event = ssh_event_new();
 int iIdxDbg;
+//-----------
+/*
+long length;
+int fh;
+char buffer[20];
+FILE *fp;
+*/
+//-----------
 
-//printf("[%s][%s][%d]: doing STDIN \n", __FILE__, __func__, iIdxDbg++);
+FILE * pFile = fopen ("./local_data.txt", "w+"); if (NULL != pFile) {//writing to file, instead of STDIN
+
+int iFileDescr = fileno(pFile);//writing to file, instead of STDIN
+printf("[%s][%s][%d]: DESCRIPTOR == <%d>\n", __FILE__, __func__, iIdxDbg++ , iFileDescr);//writing to file, instead of STDIN
+
+
+
 	/* stdin */
 	connector_in = ssh_connector_new(session);
 	ssh_connector_set_out_channel(connector_in, channel, SSH_CONNECTOR_STDOUT);
-	ssh_connector_set_in_fd(connector_in, 0);
+	ssh_connector_set_in_fd(connector_in,  /* 0 */  iFileDescr /*fh*/);
 	ssh_event_add_connector(event, connector_in);
 
 //printf("[%s][%s][%d]: doing STDOUT \n", __FILE__, __func__, iIdxDbg++);
 	/* stdout */
 	connector_out = ssh_connector_new(session);
-	ssh_connector_set_out_fd(connector_out, 1);
+	ssh_connector_set_out_fd(connector_out,  1 );
 	ssh_connector_set_in_channel(connector_out, channel, SSH_CONNECTOR_STDOUT);
 	ssh_event_add_connector(event, connector_out);
 
@@ -218,11 +232,6 @@ int iIdxDbg;
 
 	while(ssh_channel_is_open(channel))
 	{
-fwrite("show arp ?\n",  sizeof(char), ( strlen("show arp ?\n")+1 ) , stdin /* stdout */ );
-fwrite("\r",  sizeof(char), ( strlen("\r")+1 ) , stdin /* stdout */ );
-//fflush( stdin /* stdout */ );
-signal_delayed = 1;
-
 //printf("[%s][%s][%d]: cycle; polling \n", __FILE__, __func__, iIdxDbg++);
 		if(signal_delayed)
 		{
@@ -232,6 +241,10 @@ signal_delayed = 1;
 
 		ssh_event_dopoll(event, 60000);
     	}
+
+//fclose(pFile);// writing to a file, instead of STDIN
+//close(fh);
+} //writing to file, instead of STDIN
 
 //printf("[%s][%s][%d]: removing IN \n", __FILE__, __func__, iIdxDbg++);
 	ssh_event_remove_connector(event, connector_in);
@@ -246,7 +259,7 @@ signal_delayed = 1;
 	ssh_event_free(event);
 	ssh_channel_free(channel);
 
-printf("[%s][%s][%d]: finished \n", __FILE__, __func__, iIdxDbg++);
+//printf("[%s][%s][%d]: finished \n", __FILE__, __func__, iIdxDbg++);
 
 }
 
@@ -265,6 +278,7 @@ int iIdxDbg;
 
 		memcpy(&terminal,&terminal_local,sizeof(struct termios));
 	}
+
 //printf("[%s][%s][%d]: ssh_channel_open_session \n", __FILE__, __func__, iIdxDbg++);
 
 	if(ssh_channel_open_session(channel))
@@ -284,6 +298,7 @@ int iIdxDbg;
 
 		sizechanged();
 	}
+
 //printf("[%s][%s][%d]: ssh_channel_request_shell, channel=<%p>\n", __FILE__, __func__, iIdxDbg++, channel);
 
 	if(ssh_channel_request_shell(channel))
@@ -293,7 +308,69 @@ int iIdxDbg;
 		return;
 	}
 
-//printf("[%s][%s][%d]: cfmakeraw-tcsetattr-setsignal, interactive=<%d>\n", __FILE__, __func__, iIdxDbg++, interactive);
+
+
+printf("[%s][%s][%d]: cfmakeraw-tcsetattr-setsignal, interactive=<%d>\n", __FILE__, __func__, iIdxDbg++, interactive);
+
+#if (1)
+char buffer[16];
+int nbytes;
+int rc;
+/*
+	nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
+printf("0 after read , nbytes = %d\n", nbytes);
+	memcpy(buffer, "show arp ?", strlen ("show arp ?") + 1);
+_a:
+printf("1\n");
+	ssh_channel_write(channel, buffer, sizeof(buffer) );
+printf("2\n");
+*/
+
+///////////////////////
+
+char * arraychen[4] = {"?", "show ?", "tracert ?", 0};
+int _i=0;
+
+	while(arraychen[_i])
+	{
+//////////////////////////////////////////////////////////////////
+
+		//fwrite(buffer, bytes, sizeof(char),stdout);
+		//ssh_channel_write(channel, "?", strlen ("?") + 1  );
+		ssh_channel_write(channel, arraychen[_i], strlen (arraychen[_i]) + 1  );
+
+
+//////////////////////////////////////////////////////////////////
+
+		nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
+
+printf("READOUT START\n");
+		while (nbytes > 0)
+		{
+			if (fwrite(buffer, 1, nbytes, stdout) != (unsigned int) nbytes)
+			{
+printf("i can't \n");
+				return;
+			}
+			nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
+		}
+printf("READOUT END\n");
+
+
+
+/*		if (nbytes < 0)
+		{
+			return;
+		}
+
+*/
+		_i++;
+
+	}
+
+///////////////////////
+
+#else
 
 	if(interactive)
 	{
@@ -311,10 +388,13 @@ int iIdxDbg;
 	select_loop(session,channel);
 
 //printf("[%s][%s][%d]: AFTER select_loop, interactive=<%d>\n", __FILE__, __func__, iIdxDbg++, interactive);
+#endif /* (1) */
 
 	if(interactive)
 
 		do_cleanup(0);
+
+
 }
 
 static void batch_shell(ssh_session session)
@@ -406,7 +486,6 @@ int state;
 }
 
 ssh_pcap_file pcap;
-void set_pcap(ssh_session session);
 
 void set_pcap(ssh_session session)
 {
