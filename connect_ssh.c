@@ -18,9 +18,7 @@
 */
 
 #include <libssh/libssh.h>
-
 #include "examples_common.h"
-
 #include <stdio.h>
 
 ssh_session connect_ssh(const char *host, const char *user,int verbosity)
@@ -29,19 +27,18 @@ ssh_session session;
 
 int auth=0;
 
-	session=ssh_new();
+  session=ssh_new();
 
-	if (NULL == session)
+	if (session == NULL)
 	{
 		return NULL;
 	}
 
-	if(NULL != user)
+	if(user != NULL)
 	{
 		if (ssh_options_set(session, SSH_OPTIONS_USER, user) < 0)
 		{
 			ssh_free(session);
-
 			return NULL;
 		}
 	}
@@ -49,11 +46,10 @@ int auth=0;
 	if (ssh_options_set(session, SSH_OPTIONS_HOST, host) < 0)
 	{
 		ssh_free(session);
-
 		return NULL;
 	}
 
-  ssh_options_set(session, SSH_OPTIONS_LOG_VERBOSITY, &verbosity);
+	ssh_options_set(session, SSH_OPTIONS_LOG_VERBOSITY, &verbosity);
 
 	if(ssh_connect(session))
 	{
@@ -81,18 +77,19 @@ int auth=0;
 	{
 		return session;
 	}
-	else if(auth==SSH_AUTH_DENIED)
-	{
-		fprintf(stderr,"Authentication failed\n");
-	}
 	else
-	{
-		fprintf(stderr,"Error while authenticating : %s\n",ssh_get_error(session));
-	}
+		if(auth==SSH_AUTH_DENIED)
+		{
+			fprintf(stderr,"Authentication failed\n");
+		}
+		else
+		{
+			fprintf(stderr,"Error while authenticating : %s\n",ssh_get_error(session));
+		}
 
-	ssh_disconnect(session);
+		ssh_disconnect(session);
 
-	ssh_free(session);
+		ssh_free(session);
 
-	return NULL;
+		return NULL;
 }

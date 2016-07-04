@@ -64,7 +64,7 @@ int err;
 
 			prompt = ssh_userauth_kbdint_getprompt(session, i, &echo);
 
-			if (NULL == prompt)
+			if (prompt == NULL)
 			{
 				break;
 			}
@@ -75,7 +75,7 @@ int err;
 
 				printf("%s", prompt);
 
-				if (NULL == fgets(buffer, sizeof(buffer), stdin)  )
+				if (fgets(buffer, sizeof(buffer), stdin) == NULL)
 				{
 					return SSH_AUTH_ERROR;
 				}
@@ -93,12 +93,13 @@ int err;
 				}
 
 				memset(buffer, 0, strlen(buffer));
+
 			}
 			else
 			{
 				if (password && strstr(prompt, "Password:"))
 				{
-				    answer = password;
+					answer = password;
 				}
 				else
 				{
@@ -110,22 +111,22 @@ int err;
 					}
 					answer = buffer;
 				}
+
 				err = ssh_userauth_kbdint_setanswer(session, i, answer);
 
 				memset(buffer, 0, sizeof(buffer));
 
 				if (err < 0)
 				{
-				    return SSH_AUTH_ERROR;
+					return SSH_AUTH_ERROR;
 				}
-
-			}/* else-if (echo) */
+			}
 
 		} /* for (i = 0; i < n; i++) */
 
 		err=ssh_userauth_kbdint(session,NULL,NULL);
 
-	} /* while */
+	} /* 	while (err == SSH_AUTH_INFO) */
 
 	return err;
 }
@@ -147,7 +148,7 @@ char *banner;
 	/* Try to authenticate */
 	rc = ssh_userauth_none(session, NULL);
 
-	if (SSH_AUTH_ERROR == rc)
+	if (rc == SSH_AUTH_ERROR)
 	{
 		error(session);
 
@@ -156,54 +157,50 @@ char *banner;
 
 	method = ssh_userauth_list(session, NULL);
 
-	while (SSH_AUTH_SUCCESS != rc)
+	while (rc != SSH_AUTH_SUCCESS)
 	{
 		if (method & SSH_AUTH_METHOD_GSSAPI_MIC)
 		{
 			rc = ssh_userauth_gssapi(session);
 
-			if(SSH_AUTH_ERROR == rc)
+			if(rc == SSH_AUTH_ERROR)
 			{
 				error(session);
-
 				return rc;
-			} 
-			else if (SSH_AUTH_SUCCESS == rc)
+			}
+			else if (rc == SSH_AUTH_SUCCESS)
 			{
 				break;
 			}
 		}
 
 		/* Try to authenticate with public key first */
-		if (method & SSH_AUTH_METHOD_PUBLICKEY) 
+		if (method & SSH_AUTH_METHOD_PUBLICKEY)
 		{
 			rc = ssh_userauth_publickey_auto(session, NULL, NULL);
 
-			if (SSH_AUTH_ERROR == rc)
+			if (rc == SSH_AUTH_ERROR)
 			{
 				error(session);
-
 				return rc;
 			}
-			else
-				if (SSH_AUTH_SUCCESS == rc)
-				{
-					break;
-				}
+			else if (rc == SSH_AUTH_SUCCESS)
+			{
+				break;
+			}
 		}
 
-		/* Try to authenticate with keyboard interactive" */
-		if (method & SSH_AUTH_METHOD_INTERACTIVE) 
+		/*Try to authenticate with keyboard interactive" */
+		if (method & SSH_AUTH_METHOD_INTERACTIVE)
 		{
 			rc = authenticate_kbdint(session, NULL);
 
-			if (SSH_AUTH_ERROR == rc)
+			if (rc == SSH_AUTH_ERROR)
 			{
 				error(session);
-
 				return rc;
 			}
-			else if (SSH_AUTH_SUCCESS == rc)
+			else if (rc == SSH_AUTH_SUCCESS)
 			{
 				break;
 			}
@@ -220,26 +217,26 @@ char *banner;
 		memcpy(password, PASSWORD_INSTANCE, strlen(PASSWORD_INSTANCE) + 1 );
 
 #endif
-
 		/* Try to authenticate with password */
 		if (method & SSH_AUTH_METHOD_PASSWORD)
 		{
 			rc = ssh_userauth_password(session, NULL, password);
 
-			if (SSH_AUTH_ERROR == rc)
+			if (rc == SSH_AUTH_ERROR)
 			{
 				error(session);
 
 				return rc;
 			}
-			else if (SSH_AUTH_SUCCESS == rc)
-			{
-				break;
-			}
+			else
+				if (rc == SSH_AUTH_SUCCESS)
+				{
+					break;
+				}
 		}
-		memset(password, 0, sizeof(password));
 
-	} /* while (rc != SSH_AUTH_SUCCESS) */
+		memset(password, 0, sizeof(password));
+	}
 
 	banner = ssh_get_issue_banner(session);
 
