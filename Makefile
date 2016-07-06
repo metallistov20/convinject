@@ -26,7 +26,7 @@ MIDDLE := 4
 MINOR := 0
 
 NAME:= ssh
-NAME_A := ./access_srv1
+NAME_A := ./access_srv
 PWD=$(shell pwd)
 
 
@@ -38,7 +38,7 @@ all: $(NAME_A)
 lib: ./shared/lib$(NAME).so.$(VERSION)
 
 $(NAME_A):	./shared/lib$(NAME).so
-		$(CC) -I/home/mkn/_libssh/libssh/include  ./sample.c ./authentication.c ./knownhosts.c   -o $@ -L./shared -l$(NAME) \
+		$(CC) -I/home/mkn/_libssh/libssh/include  ./sample.c ./authentication.c ./knownhosts.c ./cmds.c   -o $@ -L./shared -l$(NAME) \
 		 -Wl,--rpath-link $(PWD)/shared  -Wl,--rpath $(PWD)/shared
 
 clean:

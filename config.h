@@ -1,3 +1,6 @@
+#ifndef _CONFIG_H_
+#define _CONFIG_H_
+
 /* Name of package */
 #define PACKAGE "libssh"
 
@@ -67,9 +70,6 @@
 /* Define to 1 if you have eliptic curve cryptography in openssl */
 #define HAVE_OPENSSL_ECC 1
 
-/* Define to 1 if you have eliptic curve cryptography in gcrypt */
-/* #undef HAVE_GCRYPT_ECC */
-
 /* Define to 1 if you have eliptic curve cryptography */
 #define HAVE_ECC 1
 
@@ -113,7 +113,6 @@
 /**************************** OPTIONS ****************************/
 
 #define HAVE_GCC_THREAD_LOCAL_STORAGE 1
-/* #undef HAVE_MSC_THREAD_LOCAL_STORAGE */
 
 #define HAVE_GCC_VOLATILE_MEMORY_PROTECTION 1
 #define HAVE_GCC_NARG_MACRO 1
@@ -130,9 +129,6 @@
 /* Define to 1 if you want to enable SFTP */
 #define WITH_SFTP 1
 
-/* Define to 1 if you want to enable SSH1 */
-/* #undef WITH_SSH1 */
-
 /* Define to 1 if you want to enable server support */
 #define WITH_SERVER 1
 
@@ -142,6 +138,5 @@
 /* Define to 1 if you want to enable calltrace debug output */
 #define DEBUG_CALLTRACE 1
 
-/*************************** ENDIAN *****************************/
 
-/* #undef WORDS_BIGENDIAN */
+#endif /* _CONFIG_H_ */

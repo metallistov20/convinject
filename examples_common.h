@@ -1,5 +1,5 @@
-#ifndef EXAMPLES_COMMON_H_
-#define EXAMPLES_COMMON_H_
+#ifndef _EXAMPLES_COMMON_H_
+#define _EXAMPLES_COMMON_H_
 
 #include <libssh/libssh.h>
 
@@ -11,4 +11,4 @@ int verify_knownhost(ssh_session session);
 
 ssh_session connect_ssh(const char *hostname, const char *user, int verbosity);
 
-#endif /* EXAMPLES_COMMON_H_ */
+#endif /* _EXAMPLES_COMMON_H_ */

@@ -29,6 +29,8 @@
 
 #include <sys/time.h>
 
+#include <fcntl.h>
+
 #ifdef HAVE_TERMIOS_H
 	#include <termios.h>
 #endif
@@ -79,21 +81,30 @@ int iTimeCritical_Start(char * cpMrk, int iTMO);
 
 /* Son process has terminated itself correcly */
 #define FORK_SUCCESS 		(0)
+
 /* Not defined condition of forked process(es) */
 #define FORK_UNDEFINED 		(-1)
+
 /* Code for exiting from forked process */
 #define FORK_EXITCODE		(99)
 
 /* How much seconds to wait between commands */
 #define BETW_CMD_TMO		2
+
 /* Max length of command */
 #define SINGLE_CMD_MAXLENGHT	256
+
 /* Amount of comands in array */
 #define CMD_ARR_LENGHT		8
+
 /* Type of command */
 typedef char CMD_TYPE[SINGLE_CMD_MAXLENGHT];
+
 /* Array with commands, a.k.a. commad tray */
 CMD_TYPE cCmdData[CMD_ARR_LENGHT];
+
+/* Single command buffer */
+CMD_TYPE cCmdDataBuf;
 
 
 
@@ -209,70 +220,70 @@ int n;
 
 static void usage()
 {
-	fprintf(stderr,"Usage : ssh [options] [login@]hostname\n"
-	"sample client - libssh-%s\n"
-	"Options :\n"
-	"  -l user : log in as user\n"
-	"  -p port : connect to port\n"
-	"  -d : use DSS to verify host public key\n"
-	"  -r : use RSA to verify host public key\n"
-	"  -T proxycommand : command to execute as a socket proxy\n"
-	, ssh_version(0));
+	fprintf(stderr,"Usage : ssh(v.%s)  \n"
+	"access_srv <HOST_IP> -l <USER>\n",
+	ssh_version(0) );
 
 	exit(0);
 }
 
+#define DATA_FNAME "local_data.txt"
+
+#include "cmds.h"
+/* Pointer to a dynamic structure to store command tray */
+pCmdType pCmdChain;
+
 static int opts(int argc, char **argv)
 {
 int i;
-
-	/* insert your own arguments here */
-	while((i=getopt(argc,argv,"T:P:"))!=-1)
-	{
-		switch(i)
-		{
-			case 'P':
-				pcap_file=optarg;
-			break;
-			case 'T':
-				proxycommand=optarg;
-			break;
-			default:
-				fprintf(stderr,"unknown option %c\n",optopt);
-
-				usage();
-		}
-	}
-
 	if(optind < argc)
 
 		host=argv[optind++];
-
-	while(optind < argc)
-
-		add_cmd(argv[optind++]);
 
 	if(host==NULL)
 
 		usage();
 
+//++++++++++++++++
+
+	FILE* fp = NULL;
+
+	/* Try to open file with commands  */
+	if ( NULL == (fp = fopen (DATA_FNAME, "r") ) )
+	{
+		printf("[%s] %s: can't open file <%s> \n", __FILE__, __func__ , DATA_FNAME);
+
+		return (-7);//P_ERROR;
+	}
+
+
+	/* For each string of Raw Data file */
+	while ( ! (feof (fp) ) ) 
+	{
+		/* Try to scan a whole string into temp. buffer */
+		if (0 > fscanf (fp, "%s", cCmdDataBuf ) )
+		{
+			/* EOF reached, or can't scan for some other reason (such as NFS conn. is down) */
+		}
+		else
+		{		
+
+			printf("[%s] %s: scanned: < %s >\n", __FILE__, __func__, cCmdDataBuf);
+
+			/* Attach just scanned data */
+			EnrollCmd(&pCmdChain, cCmdDataBuf);
+		}
+	}
+
+
+	/* Dispose pointer to Raw Data file */
+	fclose(fp);
+
+
+//++++++++++++++++
+
 	return 0;
 }
-
-#ifndef HAVE_CFMAKERAW
-static void cfmakeraw(struct termios *termios_p)
-{
-    termios_p->c_iflag &= ~(IGNBRK|BRKINT|PARMRK|ISTRIP|INLCR|IGNCR|ICRNL|IXON);
-
-    termios_p->c_oflag &= ~OPOST;
-
-    termios_p->c_lflag &= ~(ECHO|ECHONL|ICANON|ISIG|IEXTEN);
-
-    termios_p->c_cflag &= ~(CSIZE|PARENB);
-
-    termios_p->c_cflag |= CS8;
-}
-#endif
 
 
 static void do_cleanup(int i)
@@ -423,7 +434,7 @@ int interactive=isatty(0);
 
 	if(interactive)
 
-	do_cleanup(0);
+		do_cleanup(0);
 }
 
 static void batch_shell(ssh_session session)
@@ -505,56 +516,9 @@ int state;
 		return -1;
 	}
 
-	if(!cmds[0])
-	{
-		shell(session);
-	}
-	else
-	{
-printf("[%s][%s]: BATCH_SHELL session=<%p>\n", __FILE__, __func__, session);//+++
-		batch_shell(session);
-	}
+	shell(session);
+
 	return 0;
-}
-
-ssh_pcap_file pcap;
-
-void set_pcap(ssh_session session);
-
-void set_pcap(ssh_session session)
-{
-	if(!pcap_file)
-
-		return;
-
-	pcap=ssh_pcap_file_new();
-
-	if(!pcap)
-
-		return;
-
-	if(ssh_pcap_file_open(pcap,pcap_file) == SSH_ERROR)
-	{
-		printf("Error opening pcap file\n");
-
-		ssh_pcap_file_free(pcap);
-
-		pcap=NULL;
-
-		return;
-	}
-
-	ssh_set_pcap_file(session,pcap);
-}
-
-void cleanup_pcap(void);
-
-void cleanup_pcap()
-{
-	if(pcap)
-		ssh_pcap_file_free(pcap);
-
-	pcap=NULL;
 }
 
 int main(int argc, char **argv)
@@ -578,8 +542,6 @@ ssh_session session;
 
 	signal(SIGTERM, do_exit);
 
-	set_pcap(session);
-
 	/* Create Pipe between two endpoints */
 	pipe(fd);
 
@@ -591,8 +553,6 @@ ssh_session session;
 	ssh_disconnect(session);
 
 	ssh_free(session);
-
-	cleanup_pcap();
 
 	ssh_finalize();
 
