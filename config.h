@@ -75,9 +75,6 @@
 
 /*************************** FUNCTIONS ***************************/
 
-/* Define to 1 if you have the `EVP_aes128_ctr' function. */
-/* #undef HAVE_OPENSSL_EVP_AES_CTR */
-
 /* Define to 1 if you have the `EVP_aes128_cbc' function. */
 #define HAVE_OPENSSL_EVP_AES_CBC 1
 
@@ -140,7 +137,7 @@
 #define WITH_SERVER 1
 
 /* Define to 1 if you want to enable pcap output support (experimental) */
-#define WITH_PCAP 1
+#define WITH_PCAP 0
 
 /* Define to 1 if you want to enable calltrace debug output */
 #define DEBUG_CALLTRACE 1

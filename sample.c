@@ -74,50 +74,16 @@ static char *pcap_file=NULL;
 static char *proxycommand;
 
 
-
-#if (SAFE_TC_FORK)
-/* Initiate process of running program 'program' not longer than 'iTMO' seconds, with 'in'/'out' piped redirected */
-int iTimeCritical_Launch(char *program, int in, int out, int iTMO);
-/* Start a program 'program' and stop it after 'iTMO' seconds, with 'in'/'out' piped redirected */
-int iTimeCritical_Proceed(char *program, int in, int out, int iTMO);
-#else
-/* Initiate process of running program 'program' not longer than 'iTMO' seconds */
-int iTimeCritical_Launch(char *program, int iTMO);
-/* Start a program 'program' and stop it after 'iTMO' seconds */
-int iTimeCritical_Proceed(char *program, int iTMO);
-#endif /* (SAFE_TC_FORK) */
-
-#if (SAFE_TC_FORK)
-/* Initiate process of running program 'program' not longer than 'iTMO' seconds, with 'in'/'out' piped redirected */
-int iTimeCritical_Start(char *program, int in, int out, int iTMO);
-#else
-/* Initiate process of running program 'program' not longer than 'iTMO' seconds */
-int iTimeCritical_Start(char *program, int iTMO);
-#endif /* (SAFE_TC_FORK) */
-
-/* Stop a program 'program' in 'iTMO' seconds  in Linux way  */
-int iTimeCritical_Stop();
-
-
-
+/* Initiate forked process with marker 'cpMrk' to run not longer than 'iTMO' seconds */
+int iTimeCritical_Start(char * cpMrk, int iTMO);
 
 /* Son process has terminated itself correcly */
 #define FORK_SUCCESS 		(0)
 /* Not defined condition of forked process(es) */
 #define FORK_UNDEFINED 		(-1)
-/* Son process was not launched*/
-#define FORK_ERR_SON		(-8)
-/* Grandson process was not launched */
-#define FORK_ERR_GRANDSON	(-9)
-/* Signal hasn't been set */
-#define SIG_NOT_SET		(-11)
 /* Code for exiting from forked process */
 #define FORK_EXITCODE		(99)
 
-/* 100 ms supposed to be enough to let the process to appear in the 'proc fs'. TODO: verify if does suffice */
-#define PROCFS_REG_TIME 	100000
-/* Process is visible as launched one in 'proc fs' filesystem */
-#define PROCFS_REG_SUCCESS	(FORK_SUCCESS)
 /* How much seconds to wait between commands */
 #define BETW_CMD_TMO		2
 /* Max length of command */
@@ -137,18 +103,12 @@ static int g_iChildPID;
 /* Pipe to maintain communication between parent and child */
 int fd[2];
 
-
-/********************************************************************
-* int iTimeCritical_Start(char *program, int in, int out, int iTMO) - callback to launch
-* program 'cpPrg' from witin forked process and then to terminate after 'iTMO'.
-
+/*
 * Parameters:
-*	'cpPrg' - program to be executed in interpreter
-*	'iTMO' - amount of seconds to wait before forced termination of 'cpPrg'
-*	'int in' - input pipe
-*	'int out' - output pipe
+*	'cpMrk' - marker to define forked process 
+*	'iTMO' - amount of seconds to wait before forced cancellation
 */
-int iTimeCritical_Start(char *cpPrg, int iTMO) 
+int iTimeCritical_Start(char *cpMrk, int iTMO) 
 {
 /* Return code to define whether the child process was launched */
 int iRet = FORK_UNDEFINED;
@@ -166,19 +126,6 @@ int iRet = FORK_UNDEFINED;
 	/* Assign initial value */
 	g_iChildPID = -1;
 
-	/* Set disposition of SIGALRM signal to 'iTimeCritical_Stop' handler */
-	if ( SIG_ERR == signal(SIGALRM,(void (*)())iTimeCritical_Stop) )
-	{
-		printf("Signal has not been set. Will not do the effective pipe work\n");
-
-		/* If can't signal an ALARM to a child process then don't launch it at all */
-		return SIG_NOT_SET;
-	}
-	else
-	{
-		printf("SIGALARM has been assigned to handler <iTimeCritical_Stop>\n");
-	}
-
 	g_iChildPID = fork();
 
 	printf("New pid=%d \n", g_iChildPID);
@@ -186,16 +133,9 @@ int iRet = FORK_UNDEFINED;
 	/* Parent process */
 	if ( 0 < g_iChildPID ) 
 	{
-		/* Successfully forked */
-		iRet = FORK_SUCCESS;
-
-		/* Issue SIGALARM to caller in 'iTMO' seconds*/
-		alarm(iTMO);
-
-		/* Wait to change state in a child */
-		wait(NULL);
-
+		/* Parent should not undertake anny activity in this position */
 	}
+
 	/* Child process */
 	else if (0 == g_iChildPID)
 	{
@@ -214,7 +154,10 @@ int iRet = FORK_UNDEFINED;
 			write(fd[1], cCmdData[(CMD_ARR_LENGHT-1) - iChld], strlen (cCmdData[(CMD_ARR_LENGHT-1) - iChld]) +  1);
 		}
 
-		/* After all, close sucessors pipe, too */
+		// TODO: poll-based (or idle) wait for last command to finalize
+		sleep (BETW_CMD_TMO);
+
+		/* After all, close successors pipe, too */
 		close(fd[1]);
 	}
 
@@ -236,27 +179,6 @@ int iRet = FORK_UNDEFINED;
 	}
 }
 
-/********************************************************************
-* int iTimeCritical_Stop(int iSignum) - handler called on arrival of SIGALARM.
-* 
-* Parameters:	none
-*/
-int iTimeCritical_Stop() 
-{
-	printf ("TERMINATION ON TMO\n");
-
-	/* Send <exit> */
-	write(fd[1], cCmdData[CMD_ARR_LENGHT-1], strlen (cCmdData[CMD_ARR_LENGHT-1]) +  1);
-
-	/* And precardeously close both entries in pipe */
-	//close(fd[0]); 
-	close(fd[1]); 
-
-	/* Linux way: terminate forked process <g_iChildPID> and its successor <g_cpChildName> */
-	kill(g_iChildPID, SIGTERM);
-}
-
-
 static int auth_callback(const char *prompt, char *buf, size_t len, int echo, int verify, void *userdata)
 {
 (void) verify;
@@ -277,7 +199,7 @@ int n;
 
 	for (n = 0; (n < MAXCMD) && cmds[n] != NULL; n++);
 
-	if (n == MAXCMD)
+	if (MAXCMD == n)
 	{
 		return;
 	}
@@ -294,12 +216,7 @@ static void usage()
 	"  -p port : connect to port\n"
 	"  -d : use DSS to verify host public key\n"
 	"  -r : use RSA to verify host public key\n"
-#ifdef WITH_PCAP
-	"  -P file : create a pcap debugging file\n"
-#endif
-#ifndef _WIN32
 	"  -T proxycommand : command to execute as a socket proxy\n"
-#endif
 	, ssh_version(0));
 
 	exit(0);
@@ -317,11 +234,9 @@ int i;
 			case 'P':
 				pcap_file=optarg;
 			break;
-#ifndef _WIN32
 			case 'T':
 				proxycommand=optarg;
 			break;
-#endif
 			default:
 				fprintf(stderr,"unknown option %c\n",optopt);
 
@@ -592,7 +507,6 @@ int state;
 
 	if(!cmds[0])
 	{
-printf("[%s][%s]: SHELL session=<%p>\n", __FILE__, __func__, session);//+++
 		shell(session);
 	}
 	else

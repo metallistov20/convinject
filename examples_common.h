@@ -2,6 +2,7 @@
 #define EXAMPLES_COMMON_H_
 
 #include <libssh/libssh.h>
+
 int authenticate_console(ssh_session session);
 
 int authenticate_kbdint(ssh_session session, const char *password);
