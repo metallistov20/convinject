@@ -18,7 +18,9 @@
 */
 
 #include <libssh/libssh.h>
+
 #include "examples_common.h"
+
 #include <stdio.h>
 
 ssh_session connect_ssh(const char *host, const char *user,int verbosity)
@@ -27,18 +29,19 @@ ssh_session session;
 
 int auth=0;
 
-  session=ssh_new();
+	session=ssh_new();
 
-	if (session == NULL)
+	if (NULL == session)
 	{
 		return NULL;
 	}
 
-	if(user != NULL)
+	if(NULL != user)
 	{
 		if (ssh_options_set(session, SSH_OPTIONS_USER, user) < 0)
 		{
 			ssh_free(session);
+
 			return NULL;
 		}
 	}
@@ -46,6 +49,7 @@ int auth=0;
 	if (ssh_options_set(session, SSH_OPTIONS_HOST, host) < 0)
 	{
 		ssh_free(session);
+
 		return NULL;
 	}
 
@@ -73,12 +77,12 @@ int auth=0;
 
 	auth=authenticate_console(session);
 
-	if(auth==SSH_AUTH_SUCCESS)
+	if(SSH_AUTH_SUCCESS == auth)
 	{
 		return session;
 	}
 	else
-		if(auth==SSH_AUTH_DENIED)
+		if(SSH_AUTH_DENIED == auth)
 		{
 			fprintf(stderr,"Authentication failed\n");
 		}

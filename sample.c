@@ -73,10 +73,6 @@ static char *pcap_file=NULL;
 
 static char *proxycommand;
 
-/* Safe forking of time-critical processes */
-//+++ 2.DEL #define SAFE_TC_FORK 1
-
-
 
 
 #if (SAFE_TC_FORK)

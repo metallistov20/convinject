@@ -6,10 +6,15 @@
 
 /* #undef LOCALEDIR */
 #define DATADIR "/usr/share/libssh"
+
 #define LIBDIR "/usr/lib"
+
 #define PLUGINDIR "/usr/lib/libssh-4"
+
 #define SYSCONFDIR "/usr/etc"
+
 #define BINARYDIR "/home/mkn/_libssh/libssh_build"
+
 #define SOURCEDIR "/home/mkn/_libssh/libssh"
 
 /************************** HEADER FILES *************************/
@@ -25,12 +30,6 @@
 
 /* Define to 1 if you have the <utmp.h> header file. */
 #define HAVE_UTMP_H 1
-
-/* Define to 1 if you have the <util.h> header file. */
-/* #undef HAVE_UTIL_H */
-
-/* Define to 1 if you have the <libutil.h> header file. */
-/* #undef HAVE_LIBUTIL_H */
 
 /* Define to 1 if you have the <sys/time.h> header file. */
 #define HAVE_SYS_TIME_H 1
@@ -82,24 +81,6 @@
 /* Define to 1 if you have the `EVP_aes128_cbc' function. */
 #define HAVE_OPENSSL_EVP_AES_CBC 1
 
-/* Define to 1 if you have the `snprintf' function. */
-/* #undef HAVE_SNPRINTF */
-
-/* Define to 1 if you have the `_snprintf' function. */
-/* #undef HAVE__SNPRINTF */
-
-/* Define to 1 if you have the `_snprintf_s' function. */
-/* #undef HAVE__SNPRINTF_S */
-
-/* Define to 1 if you have the `vsnprintf' function. */
-/* #undef HAVE_VSNPRINTF */
-
-/* Define to 1 if you have the `_vsnprintf' function. */
-/* #undef HAVE__VSNPRINTF */
-
-/* Define to 1 if you have the `_vsnprintf_s' function. */
-/* #undef HAVE__VSNPRINTF_S */
-
 /* Define to 1 if you have the `isblank' function. */
 #define HAVE_ISBLANK 1
 
@@ -121,28 +102,13 @@
 /* Define to 1 if you have the `clock_gettime' function. */
 #define HAVE_CLOCK_GETTIME 1
 
-/* Define to 1 if you have the `ntohll' function. */
-/* #undef HAVE_NTOHLL */
-
-/* Define to 1 if you have the `htonll' function. */
-/* #undef HAVE_HTONLL */
-
 /* Define to 1 if you have the `strtoull' function. */
 #define HAVE_STRTOULL 1
-
-/* Define to 1 if you have the `__strtoull' function. */
-/* #undef HAVE___STRTOULL */
-
-/* Define to 1 if you have the `_strtoui64' function. */
-/* #undef HAVE__STRTOUI64 */
 
 /*************************** LIBRARIES ***************************/
 
 /* Define to 1 if you have the `crypto' library (-lcrypto). */
 #define HAVE_LIBCRYPTO 1
-
-/* Define to 1 if you have the `gcrypt' library (-lgcrypt). */
-/* #undef HAVE_LIBGCRYPT */
 
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #define HAVE_PTHREAD 1
@@ -173,20 +139,12 @@
 /* Define to 1 if you want to enable server support */
 #define WITH_SERVER 1
 
-/* Define to 1 if you want to enable debug output for crypto functions */
-/* #undef DEBUG_CRYPTO */
-
 /* Define to 1 if you want to enable pcap output support (experimental) */
 #define WITH_PCAP 1
 
 /* Define to 1 if you want to enable calltrace debug output */
 #define DEBUG_CALLTRACE 1
 
-/* Define to 1 if you want to enable NaCl support */
-/* #undef WITH_NACL */
-
 /*************************** ENDIAN *****************************/
 
-/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
-   significant byte first (like Motorola and SPARC, unlike Intel). */
 /* #undef WORDS_BIGENDIAN */

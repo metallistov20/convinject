@@ -33,7 +33,7 @@ int err;
 
 	err = ssh_userauth_kbdint(session, NULL, NULL);
 
-	while (err == SSH_AUTH_INFO)
+	while (SSH_AUTH_INFO == err)
 	{
 	const char *instruction;
 	const char *name;
@@ -157,13 +157,13 @@ char *banner;
 
 	method = ssh_userauth_list(session, NULL);
 
-	while (rc != SSH_AUTH_SUCCESS)
+	while (SSH_AUTH_SUCCESS != rc)
 	{
 		if (method & SSH_AUTH_METHOD_GSSAPI_MIC)
 		{
 			rc = ssh_userauth_gssapi(session);
 
-			if(rc == SSH_AUTH_ERROR)
+			if(SSH_AUTH_ERROR == rc)
 			{
 				error(session);
 				return rc;
@@ -179,12 +179,12 @@ char *banner;
 		{
 			rc = ssh_userauth_publickey_auto(session, NULL, NULL);
 
-			if (rc == SSH_AUTH_ERROR)
+			if(SSH_AUTH_ERROR == rc)
 			{
 				error(session);
 				return rc;
 			}
-			else if (rc == SSH_AUTH_SUCCESS)
+			else if (SSH_AUTH_SUCCESS == rc)
 			{
 				break;
 			}
@@ -195,12 +195,12 @@ char *banner;
 		{
 			rc = authenticate_kbdint(session, NULL);
 
-			if (rc == SSH_AUTH_ERROR)
+			if (SSH_AUTH_ERROR == rc)
 			{
 				error(session);
 				return rc;
 			}
-			else if (rc == SSH_AUTH_SUCCESS)
+			else if (SSH_AUTH_SUCCESS == rc)
 			{
 				break;
 			}
@@ -222,14 +222,14 @@ char *banner;
 		{
 			rc = ssh_userauth_password(session, NULL, password);
 
-			if (rc == SSH_AUTH_ERROR)
+			if (SSH_AUTH_ERROR == rc)
 			{
 				error(session);
 
 				return rc;
 			}
 			else
-				if (rc == SSH_AUTH_SUCCESS)
+				if (SSH_AUTH_SUCCESS == rc)
 				{
 					break;
 				}
