@@ -75,6 +75,14 @@ static char *pcap_file=NULL;
 
 static char *proxycommand;
 
+#define DATA_FNAME "local_data.txt"
+
+#include "cmds.h"
+
+/* Pointer to a dynamic structure to store command tray */
+pCmdType pCmdChain;
+
+
 
 /* Initiate forked process with marker 'cpMrk' to run not longer than 'iTMO' seconds */
 int iTimeCritical_Start(char * cpMrk, int iTMO);
@@ -89,7 +97,7 @@ int iTimeCritical_Start(char * cpMrk, int iTMO);
 #define FORK_EXITCODE		(99)
 
 /* How much seconds to wait between commands */
-#define BETW_CMD_TMO		2
+#define BETW_CMD_TMO		2 // TODO: move one level upper
 
 /* Max length of command */
 #define SINGLE_CMD_MAXLENGHT	256
@@ -124,6 +132,7 @@ int iTimeCritical_Start(char *cpMrk, int iTMO)
 /* Return code to define whether the child process was launched */
 int iRet = FORK_UNDEFINED;
 
+#if 0
 	/* Initialize command tray <cCmdData> with (quasi)effective commands */
 	strcpy(cCmdData[0], "show port isolation");
 	strcpy(cCmdData[1], "history");
@@ -133,6 +142,8 @@ int iRet = FORK_UNDEFINED;
 	strcpy(cCmdData[5], "tracert 127.0.0.1");
 	strcpy(cCmdData[6], "history");
 	strcpy(cCmdData[7], "exit");
+#endif /* (0) */
+
 
 	/* Assign initial value */
 	g_iChildPID = -1;
@@ -147,6 +158,8 @@ int iRet = FORK_UNDEFINED;
 		/* Parent should not undertake anny activity in this position */
 	}
 
+
+
 	/* Child process */
 	else if (0 == g_iChildPID)
 	{
@@ -154,7 +167,7 @@ int iRet = FORK_UNDEFINED;
 
 		/* Successor to close first endpoint of pipe, so only secpond one remains avail. for writing */
 		close(fd[0]);
-
+#if 0
 		/* Add effective code here */
 		while (iChld--)
 		{
@@ -164,6 +177,13 @@ int iRet = FORK_UNDEFINED;
 			/* Push next command from tray into second endpoint of pipe */
 			write(fd[1], cCmdData[(CMD_ARR_LENGHT-1) - iChld], strlen (cCmdData[(CMD_ARR_LENGHT-1) - iChld]) +  1);
 		}
+#else
+
+		//****************
+		ProcessCmds(pCmdChain);
+		//****************
+
+#endif /* (0) */
 
 		// TODO: poll-based (or idle) wait for last command to finalize
 		sleep (BETW_CMD_TMO);
@@ -171,6 +191,9 @@ int iRet = FORK_UNDEFINED;
 		/* After all, close successors pipe, too */
 		close(fd[1]);
 	}
+
+
+
 
 	/* Processing error code of parent on return */
 	if (g_iChildPID != 0)
@@ -227,15 +250,10 @@ static void usage()
 	exit(0);
 }
 
-#define DATA_FNAME "local_data.txt"
-
-#include "cmds.h"
-/* Pointer to a dynamic structure to store command tray */
-pCmdType pCmdChain;
-
 static int opts(int argc, char **argv)
 {
-int i;
+FILE* fp = NULL;
+
 	if(optind < argc)
 
 		host=argv[optind++];
@@ -243,10 +261,6 @@ int i;
 	if(host==NULL)
 
 		usage();
-
-//++++++++++++++++
-
-	FILE* fp = NULL;
 
 	/* Try to open file with commands  */
 	if ( NULL == (fp = fopen (DATA_FNAME, "r") ) )
@@ -260,15 +274,14 @@ int i;
 	/* For each string of Raw Data file */
 	while ( ! (feof (fp) ) ) 
 	{
-		/* Try to scan a whole string into temp. buffer */
-		if (0 > fscanf (fp, "%s", cCmdDataBuf ) )
+		/* Scan whole string into temp. buffer */
+		if (NULL == fgets (cCmdDataBuf, SINGLE_CMD_MAXLENGHT, fp) )
 		{
-			/* EOF reached, or can't scan for some other reason (such as NFS conn. is down) */
+			/* no string read from data file */
 		}
 		else
-		{		
-
-			printf("[%s] %s: scanned: < %s >\n", __FILE__, __func__, cCmdDataBuf);
+		{
+			printf("[%s] %s: scanned:%s", __FILE__, __func__, cCmdDataBuf);
 
 			/* Attach just scanned data */
 			EnrollCmd(&pCmdChain, cCmdDataBuf);
@@ -278,9 +291,6 @@ int i;
 
 	/* Dispose pointer to Raw Data file */
 	fclose(fp);
-
-
-//++++++++++++++++
 
 	return 0;
 }
