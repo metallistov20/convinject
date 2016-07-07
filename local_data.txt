@@ -1,0 +1,9 @@
+show port isolation
+history
+ping 192.168.1.1
+tracert 192.168.1.1
+ping 127.0.0.1
+tracert 127.0.0.1
+history
+exit
+

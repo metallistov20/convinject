@@ -66,7 +66,8 @@ int rc;
 	switch(state)
 	{
 		case SSH_SERVER_KNOWN_OK:
-		break; /* ok */
+		/* Server found */
+		break;
 
 		case SSH_SERVER_KNOWN_CHANGED:
 

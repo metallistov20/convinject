@@ -96,9 +96,6 @@ int iTimeCritical_Start(char * cpMrk, int iTMO);
 /* Code for exiting from forked process */
 #define FORK_EXITCODE		(99)
 
-/* How much seconds to wait between commands */
-#define BETW_CMD_TMO		2 // TODO: move one level upper
-
 /* Max length of command */
 #define SINGLE_CMD_MAXLENGHT	256
 
@@ -132,19 +129,6 @@ int iTimeCritical_Start(char *cpMrk, int iTMO)
 /* Return code to define whether the child process was launched */
 int iRet = FORK_UNDEFINED;
 
-#if 0
-	/* Initialize command tray <cCmdData> with (quasi)effective commands */
-	strcpy(cCmdData[0], "show port isolation");
-	strcpy(cCmdData[1], "history");
-	strcpy(cCmdData[2], "ping 192.168.1.1");
-	strcpy(cCmdData[3], "tracert 192.168.1.1");
-	strcpy(cCmdData[4], "ping 127.0.0.1");
-	strcpy(cCmdData[5], "tracert 127.0.0.1");
-	strcpy(cCmdData[6], "history");
-	strcpy(cCmdData[7], "exit");
-#endif /* (0) */
-
-
 	/* Assign initial value */
 	g_iChildPID = -1;
 
@@ -167,26 +151,8 @@ int iRet = FORK_UNDEFINED;
 
 		/* Successor to close first endpoint of pipe, so only secpond one remains avail. for writing */
 		close(fd[0]);
-#if 0
-		/* Add effective code here */
-		while (iChld--)
-		{
-			/* Wait between commands */
-			sleep (BETW_CMD_TMO);
 
-			/* Push next command from tray into second endpoint of pipe */
-			write(fd[1], cCmdData[(CMD_ARR_LENGHT-1) - iChld], strlen (cCmdData[(CMD_ARR_LENGHT-1) - iChld]) +  1);
-		}
-#else
-
-		//****************
 		ProcessCmds(pCmdChain);
-		//****************
-
-#endif /* (0) */
-
-		// TODO: poll-based (or idle) wait for last command to finalize
-		sleep (BETW_CMD_TMO);
 
 		/* After all, close successors pipe, too */
 		close(fd[1]);
@@ -565,6 +531,9 @@ ssh_session session;
 	ssh_free(session);
 
 	ssh_finalize();
+
+	/* Free memory occupied by dynamically stored raw data */
+	DeleteCmds(&pCmdChain);
 
 	return 0;
 }

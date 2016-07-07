@@ -30,6 +30,8 @@ NAME_A := ./access_srv
 PWD=$(shell pwd)
 
 
+CFLAGS=-I/home/mkn/_libssh/libssh/include -L./shared
+#CFLAGS+= -D_DBG
 
 VERSION := $(MAJOR).$(MIDDLE).$(MINOR)
 
@@ -38,7 +40,7 @@ all: $(NAME_A)
 lib: ./shared/lib$(NAME).so.$(VERSION)
 
 $(NAME_A):	./shared/lib$(NAME).so
-		$(CC) -I/home/mkn/_libssh/libssh/include  ./sample.c ./authentication.c ./knownhosts.c ./cmds.c   -o $@ -L./shared -l$(NAME) \
+		$(CC)   $(CFLAGS)  ./sample.c ./authentication.c ./knownhosts.c ./cmds.c   -o $@  -l$(NAME) \
 		 -Wl,--rpath-link $(PWD)/shared  -Wl,--rpath $(PWD)/shared
 
 clean:

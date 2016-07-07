@@ -30,6 +30,19 @@
 #include "cmds.h"
 
 
+/* How much seconds to wait between commands */
+#define BETW_CMD_TMO		2
+
+/* Allocation/deallocation was succesful */
+#define SUCCESS_MEM		0
+
+/* Alocation/deallocation failed */
+#define ERROR_MEM		(-4)
+
+/* File desciptors of pipe to write STDIN-data to */
+extern int fd[2];
+
+/* Enroll single command into struct. Allocates memory for <*ppThisCmdChain> once not allocated, yet */
 int _EnrollCmd(const char * caller, pCmdType * ppThisCmdChain, char * pcCmd)
 {
 pCmdType pChild, pTempCmdChain;
@@ -45,15 +58,13 @@ pCmdType pChild, pTempCmdChain;
 			printf("[%s] %s:%s : ERROR: can't allocate memory for first element. \n",
 			__FILE__, caller, __func__);
 
-			return (-8);//ERROR_MEM;
+			return ERROR_MEM;
 		}
 
-#if 1
 		/* fulfill data */
 		(*ppThisCmdChain)->pcCmd = calloc (1, strlen (pcCmd) +1 );
 
 		strcpy( (*ppThisCmdChain)->pcCmd, pcCmd);
-#endif
 	}
 	else
 	{
@@ -68,15 +79,13 @@ pCmdType pChild, pTempCmdChain;
 			printf("[%s] %s:%s : ERROR: can't allocate memory for next element. \n", 
 			__FILE__, caller, __func__);
 
-			return (-8);//ERROR_MEM;
+			return ERROR_MEM;
 		}
 
-#if 1
 		/* fulfill data */
 		pTempCmdChain->pcCmd = calloc (1, strlen (pcCmd) +1 );
 
 		strcpy( pTempCmdChain->pcCmd, pcCmd);
-#endif
 
 		/* Skip everything, except last entry */
 		while ( (NULL != pChild) && (NULL != pChild->pNext ) )
@@ -87,21 +96,17 @@ pCmdType pChild, pTempCmdChain;
 
 		/* Next chunk was created allright (we know it at this moment), so we attach a new chain entry to the end of existing chain */
 		pChild->pNext = pTempCmdChain;
-
 	}
 
-	return 0;//SUCCESS;
+	return SUCCESS_MEM;
 
 }
-
-extern int fd[2];
-#include "cmds.h"
 
 /* Process data stored in dynamic structure pointed by 'pPointChainPar' */
 static int ProcessSingleCmd(/* const char * caller, */pCmdType pPointChainPar)
 {
-//	/* Wait between commands */
-//	sleep (BETW_CMD_TMO);
+	/* Wait between commands */
+	sleep (BETW_CMD_TMO);
 
 	/* Push next command from tray into second endpoint of pipe */
 	write(fd[1], pPointChainPar->pcCmd, strlen (pPointChainPar->pcCmd) +  1);
@@ -115,23 +120,23 @@ pCmdType pPointChain = pPointChainPar;
 	/* Process each entry of chain */
 	while (NULL != pPointChain)
 	{		
-#if 1
-		/* Realtime and relative-time values */
-		ProcessSingleCmd(pPointChain);
-#else
+#if defined(_DBG)
 		printf ("PRINT OUT<pPointChainPar=%p>:%s\n", pPointChain, pPointChain->pcCmd);
 #endif /* 0 */
+
+		/* Realtime and relative-time values */
+		ProcessSingleCmd(pPointChain);
 
 		/* Go to next record of chain */
 		pPointChain = pPointChain->pNext;
 	}
 
-	return 0;//SUCCESS;
+	return SUCCESS_MEM;
 
 }
 
 /* Free memory occupied by '*ppThisCmdChain' */
-void _DeleteCmd(const char * caller, pCmdType * ppThisCmdChain)
+void _DeleteCmds(const char * caller, pCmdType * ppThisCmdChain)
 {
 pCmdType pChild, pThisCmdChain = *ppThisCmdChain;
 
@@ -158,6 +163,3 @@ pCmdType pChild, pThisCmdChain = *ppThisCmdChain;
 	*ppThisCmdChain = NULL;
 
 }
-
-
-

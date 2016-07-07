@@ -21,6 +21,7 @@
 #define _CMDS_H_
 
 
+/* Dynamic struct to contain SSH commands in field <pcCmd> */
 typedef struct _CmdType
 {
 	/* String to point to Command */
@@ -32,10 +33,13 @@ typedef struct _CmdType
 } CmdType, *pCmdType;
 
 
+/* Enroll single command into struct */
 int _EnrollCmd(const char * caller, pCmdType * ppThisPointChain, char * pcCmd);
 
+/* Process all commands from struct */
 int _ProcessCmds(const char * caller, pCmdType pCmdChainPar);
 
+/* Free memory occupied by dynamic struct */
 void _DeleteCmd(const char * caller, pCmdType * ppThisCmdChain);
 
 
@@ -43,7 +47,6 @@ void _DeleteCmd(const char * caller, pCmdType * ppThisCmdChain);
 
 #define ProcessCmds(x) _ProcessCmds(__func__, (x))
 
-#define DeleteCmd(x) _DeleteCmd(__func__, (x))
-
+#define DeleteCmds(x) _DeleteCmds(__func__, (x))
 
 #endif /* _CMDS_H_ */

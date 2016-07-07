@@ -27,6 +27,8 @@
 
 #include "examples_common.h"
 
+#define PASSWORD_INSTANCE "admin"
+
 int authenticate_kbdint(ssh_session session, const char *password)
 {
 int err;
@@ -136,8 +138,6 @@ static void error(ssh_session session)
 	fprintf(stderr,"Authentication failed: %s\n",ssh_get_error(session));
 }
 
-#define PASSWORD_INSTANCE "admin"
-
 int authenticate_console(ssh_session session)
 {
 int rc;
@@ -206,16 +206,15 @@ char *banner;
 			}
 		}
 
-#if (0)
+#if defined(OBSOLETE_AUTH)
 		if (ssh_getpass("Password: ", password, sizeof(password), 0, 0) < 0)
 		{
 			return SSH_AUTH_ERROR;
 		}
 #else
 
-		/* Notmally we shoud interact with SSH/CLI as less as we wish */
+		/* Notmally we shoud interact with SSH/CLI as less as we can */
 		memcpy(password, PASSWORD_INSTANCE, strlen(PASSWORD_INSTANCE) + 1 );
-
 #endif
 		/* Try to authenticate with password */
 		if (method & SSH_AUTH_METHOD_PASSWORD)
