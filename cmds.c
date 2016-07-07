@@ -40,7 +40,7 @@
 #define ERROR_MEM		(-4)
 
 /* File desciptors of pipe to write STDIN-data to */
-extern int fd[2];
+extern int input_pipe[2];
 
 /* Enroll single command into struct. Allocates memory for <*ppThisCmdChain> once not allocated, yet */
 int _EnrollCmd(const char * caller, pCmdType * ppThisCmdChain, char * pcCmd)
@@ -102,14 +102,37 @@ pCmdType pChild, pTempCmdChain;
 
 }
 
+
+extern int output_pipe[2];
+
+
 /* Process data stored in dynamic structure pointed by 'pPointChainPar' */
 static int ProcessSingleCmd(/* const char * caller, */pCmdType pPointChainPar)
 {
+char cResponceData[0x400];
+
+int iNumRead;
+
 	/* Wait between commands */
 	sleep (BETW_CMD_TMO);
 
 	/* Push next command from tray into second endpoint of pipe */
-	write(fd[1], pPointChainPar->pcCmd, strlen (pPointChainPar->pcCmd) +  1);
+	write(input_pipe[1], pPointChainPar->pcCmd, strlen (pPointChainPar->pcCmd) +  1);
+
+	iNumRead = read(output_pipe[1], cResponceData, 0x400);
+
+#if defined(_DBG)
+
+	if (-1 == iNumRead)
+		printf("[read ERR]\n");
+	else
+		if (0 == iNumRead)
+			printf("[eof]\n");
+		else
+			printf(">>>>RSPNC>>>> %s <<<<<\n", cResponceData );
+
+#endif /* 0 */
+
 }
 
 /* Process data stored in dynamic structure pointed by 'pPointChainPar' */

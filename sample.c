@@ -85,7 +85,10 @@ pCmdType pCmdChain;
 
 
 /* Initiate forked process with marker 'cpMrk' to run not longer than 'iTMO' seconds */
-int iTimeCritical_Start(char * cpMrk, int iTMO);
+int iInput_Start(char * cpMrk, int iTMO);
+
+/* */
+int iOutput_Start(char * cpMrk, int iTMO);
 
 /* Son process has terminated itself correcly */
 #define FORK_SUCCESS 		(0)
@@ -102,6 +105,9 @@ int iTimeCritical_Start(char * cpMrk, int iTMO);
 /* Amount of comands in array */
 #define CMD_ARR_LENGHT		8
 
+/* File open error */
+#define FO_ERROR		(-7)
+
 /* Type of command */
 typedef char CMD_TYPE[SINGLE_CMD_MAXLENGHT];
 
@@ -111,20 +117,22 @@ CMD_TYPE cCmdData[CMD_ARR_LENGHT];
 /* Single command buffer */
 CMD_TYPE cCmdDataBuf;
 
-
-
 /* Name of process to terminate on timeout */
 static int g_iChildPID;
 
 /* Pipe to maintain communication between parent and child */
-int fd[2];
+int input_pipe[2];
+
+/* Pipe to ... TODO add comment */
+int output_pipe[2];
+
 
 /*
 * Parameters:
 *	'cpMrk' - marker to define forked process 
 *	'iTMO' - amount of seconds to wait before forced cancellation
 */
-int iTimeCritical_Start(char *cpMrk, int iTMO) 
+int iInput_Start(char *cpMrk, int iTMO) 
 {
 /* Return code to define whether the child process was launched */
 int iRet = FORK_UNDEFINED;
@@ -150,15 +158,76 @@ int iRet = FORK_UNDEFINED;
 	int iChld = CMD_ARR_LENGHT;
 
 		/* Successor to close first endpoint of pipe, so only secpond one remains avail. for writing */
-		close(fd[0]);
+		close(input_pipe[0]);
+		close(output_pipe[0]);
 
 		ProcessCmds(pCmdChain);
 
 		/* After all, close successors pipe, too */
-		close(fd[1]);
+		close(input_pipe[1]);
+		close(output_pipe[1]);
 	}
 
 
+	/* Processing error code of parent on return */
+	if (g_iChildPID != 0)
+	{
+		printf(" Parent process (%d) returns <%d>  \n", g_iChildPID, iRet);
+
+		/* Only parent is eligible to report retcode to caller */
+		return iRet;
+	}
+	/* Finalizing child without error code processing */
+	else
+	{
+		printf(" Child process (%d) exits, does not return to caller  \n", g_iChildPID);
+		
+		/* Successor exits */
+		exit(FORK_EXITCODE);
+	}
+}
+
+int iOutput_Start(char *cpMrk, int iTMO) 
+{
+/* Return code to define whether the child process was launched */
+int iRet = FORK_UNDEFINED;
+
+	/* Assign initial value */
+	g_iChildPID = -1;
+
+	g_iChildPID = fork();
+
+	printf("New pid=%d \n", g_iChildPID);
+
+	/* Parent process */
+	if ( 0 < g_iChildPID ) 
+	{
+		/* Parent should not undertake anny activity in this position */
+	}
+
+
+
+	/* Child process */
+	else if (0 == g_iChildPID)
+	{
+	int iChld = CMD_ARR_LENGHT;
+
+		/* Successor to close first endpoint of pipe, so only secpond one remains avail. for writing */
+		close(output_pipe[0]);
+
+		while (1)
+		{
+		CMD_TYPE cResponceData;
+
+			read(output_pipe[1], cResponceData, SINGLE_CMD_MAXLENGHT);
+#if defined(_DBG)
+			printf(">>>>RSPNC>>>> %s <<<<<", cResponceData);
+#endif /* 0 */
+		}
+
+		/* After all, close successors pipe, too */
+		close(output_pipe[1]);
+	}
 
 
 	/* Processing error code of parent on return */
@@ -233,7 +302,7 @@ FILE* fp = NULL;
 	{
 		printf("[%s] %s: can't open file <%s> \n", __FILE__, __func__ , DATA_FNAME);
 
-		return (-7);//P_ERROR;
+		return FO_ERROR;
 	}
 
 
@@ -255,11 +324,52 @@ FILE* fp = NULL;
 	}
 
 
-	/* Dispose pointer to Raw Data file */
+	/* Close file, and dispose pointer to Raw Data file */
 	fclose(fp);
 
 	return 0;
 }
+
+
+
+static int analyse_ou_t()
+{
+FILE* fp = NULL;
+
+	/* Try to open file with commands  */
+	if ( NULL == (fp = fopen (DATA_FNAME".OUTPUT", "w") ) )
+	{
+		printf("[%s] %s: can't open output file <%s> \n", __FILE__, __func__ , DATA_FNAME".OUTPUT");
+
+		return FO_ERROR;
+	}
+
+#if 0
+	/* For each string of Raw Data file */
+	while ( ! (eof (output_pipe[1]) ) ) 
+	{
+
+		/* Scan whole string into temp. buffer */
+		if (NULL == gets (cCmdDataBuf, SINGLE_CMD_MAXLENGHT, output_pipe[1]) )
+		{
+			/* no string read from data file */
+		}
+		else
+		{
+			printf("[%s] %s: >>>>scanned:%s", __FILE__, __func__, cCmdDataBuf);
+
+			//fread(cCmdDataBuf, strlen (cCmdDataBreuf) + 1 , 1, output_pipe[1]);
+		}
+	}
+#endif /* (0) */
+
+
+	/* Close file */
+	fclose(fp);
+
+	return 0;
+}
+
 
 
 static void do_cleanup(int i)
@@ -318,13 +428,14 @@ ssh_connector connector_in, connector_out, connector_err;
 	/* stdin */
 	connector_in = ssh_connector_new(session);
 	ssh_connector_set_out_channel(connector_in, channel, SSH_CONNECTOR_STDOUT);
-	/* Attach first endpointg of pipe to SSH core */
-	ssh_connector_set_in_fd(connector_in, fd[0] /* 0 */);
+	/* Attach first endpointg of input pipe to SSH core */
+	ssh_connector_set_in_fd(connector_in, input_pipe[0] /* 0 */);
 	ssh_event_add_connector(event, connector_in);
 
 	/* stdout */
 	connector_out = ssh_connector_new(session);
-	ssh_connector_set_out_fd(connector_out, 1);
+	/* Attach first endpointg of output pipe to SSH core */
+	ssh_connector_set_out_fd(connector_out,  output_pipe[0] /* 1*/);
 	ssh_connector_set_in_channel(connector_out, channel, SSH_CONNECTOR_STDOUT);
 	ssh_event_add_connector(event, connector_out);
 
@@ -413,39 +524,6 @@ int interactive=isatty(0);
 		do_cleanup(0);
 }
 
-static void batch_shell(ssh_session session)
-{
-ssh_channel channel;
-
-char buffer[1024];
-
-int i,s=0;
-
-	for( i=0; i<MAXCMD && cmds[i]; ++i)
-	{
-		s += snprintf(buffer+s,sizeof(buffer)-s,"%s ",cmds[i]);
-
-		free(cmds[i]);
-
-		cmds[i] = NULL;
-	}
-
-
-	channel=ssh_channel_new(session);
-
-	ssh_channel_open_session(channel);
-
-
-	if(ssh_channel_request_exec(channel,buffer))
-	{
-		printf("error executing \"%s\" : %s\n", buffer, ssh_get_error(session) );
-
-		return;
-	}
-
-	select_loop(session,channel);
-}
-
 static int client(ssh_session session)
 {
 int auth=0;
@@ -518,11 +596,16 @@ ssh_session session;
 
 	signal(SIGTERM, do_exit);
 
-	/* Create Pipe between two endpoints */
-	pipe(fd);
+	/* Create input pipe between two endpoints */
+	pipe(input_pipe);
+
+	/* Create output pipe between two endpoints */
+	pipe(output_pipe);
 
 	/* Launch Successor to push commands into tray */
-	iTimeCritical_Start("none", 25);
+	iInput_Start("none", 25);
+
+//	iOutput_Start("", 25);
 
 	client(session);
 

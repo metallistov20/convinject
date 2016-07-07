@@ -31,7 +31,7 @@ PWD=$(shell pwd)
 
 
 CFLAGS=-I/home/mkn/_libssh/libssh/include -L./shared
-#CFLAGS+= -D_DBG
+CFLAGS+= -D_DBG
 
 VERSION := $(MAJOR).$(MIDDLE).$(MINOR)
 
