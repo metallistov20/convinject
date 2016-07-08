@@ -119,10 +119,11 @@ int iNumRead;
 	/* Push next command from tray into second endpoint of pipe */
 	write(input_pipe[1], pPointChainPar->pcCmd, strlen (pPointChainPar->pcCmd) +  1);
 
+#if defined(OUT_PIPE)
 	iNumRead = read(output_pipe[1], cResponceData, 0x400);
+#endif /* OUT_PIPE */
 
 #if defined(_DBG)
-
 	if (-1 == iNumRead)
 		printf("[read ERR]\n");
 	else
@@ -130,7 +131,6 @@ int iNumRead;
 			printf("[eof]\n");
 		else
 			printf(">>>>RSPNC>>>> %s <<<<<\n", cResponceData );
-
 #endif /* 0 */
 
 }

@@ -123,8 +123,10 @@ static int g_iChildPID;
 /* Pipe to maintain communication between parent and child */
 int input_pipe[2];
 
+#if defined(OUT_PIPE)
 /* Pipe to ... TODO add comment */
 int output_pipe[2];
+#endif /* OUT_PIPE */
 
 
 /*
@@ -159,13 +161,17 @@ int iRet = FORK_UNDEFINED;
 
 		/* Successor to close first endpoint of pipe, so only secpond one remains avail. for writing */
 		close(input_pipe[0]);
+#if defined(OUT_PIPE)
 		close(output_pipe[0]);
+#endif /* OUT_PIPE */
 
 		ProcessCmds(pCmdChain);
 
 		/* After all, close successors pipe, too */
 		close(input_pipe[1]);
+#if defined(OUT_PIPE)
 		close(output_pipe[1]);
+#endif /* OUT_PIPE */
 	}
 
 
@@ -187,6 +193,7 @@ int iRet = FORK_UNDEFINED;
 	}
 }
 
+#if defined(OUT_PIPE)
 int iOutput_Start(char *cpMrk, int iTMO) 
 {
 /* Return code to define whether the child process was launched */
@@ -204,8 +211,6 @@ int iRet = FORK_UNDEFINED;
 	{
 		/* Parent should not undertake anny activity in this position */
 	}
-
-
 
 	/* Child process */
 	else if (0 == g_iChildPID)
@@ -247,6 +252,7 @@ int iRet = FORK_UNDEFINED;
 		exit(FORK_EXITCODE);
 	}
 }
+#endif /* OUT_PIPE */
 
 static int auth_callback(const char *prompt, char *buf, size_t len, int echo, int verify, void *userdata)
 {
@@ -332,45 +338,6 @@ FILE* fp = NULL;
 
 
 
-static int analyse_ou_t()
-{
-FILE* fp = NULL;
-
-	/* Try to open file with commands  */
-	if ( NULL == (fp = fopen (DATA_FNAME".OUTPUT", "w") ) )
-	{
-		printf("[%s] %s: can't open output file <%s> \n", __FILE__, __func__ , DATA_FNAME".OUTPUT");
-
-		return FO_ERROR;
-	}
-
-#if 0
-	/* For each string of Raw Data file */
-	while ( ! (eof (output_pipe[1]) ) ) 
-	{
-
-		/* Scan whole string into temp. buffer */
-		if (NULL == gets (cCmdDataBuf, SINGLE_CMD_MAXLENGHT, output_pipe[1]) )
-		{
-			/* no string read from data file */
-		}
-		else
-		{
-			printf("[%s] %s: >>>>scanned:%s", __FILE__, __func__, cCmdDataBuf);
-
-			//fread(cCmdDataBuf, strlen (cCmdDataBreuf) + 1 , 1, output_pipe[1]);
-		}
-	}
-#endif /* (0) */
-
-
-	/* Close file */
-	fclose(fp);
-
-	return 0;
-}
-
-
 
 static void do_cleanup(int i)
 {
@@ -434,8 +401,12 @@ ssh_connector connector_in, connector_out, connector_err;
 
 	/* stdout */
 	connector_out = ssh_connector_new(session);
+#if defined(OUT_PIPE)
 	/* Attach first endpointg of output pipe to SSH core */
 	ssh_connector_set_out_fd(connector_out,  output_pipe[0] /* 1*/);
+#else
+	ssh_connector_set_out_fd(connector_out,  1);
+#endif /* OUT_PIPE */
 	ssh_connector_set_in_channel(connector_out, channel, SSH_CONNECTOR_STDOUT);
 	ssh_event_add_connector(event, connector_out);
 
@@ -599,13 +570,17 @@ ssh_session session;
 	/* Create input pipe between two endpoints */
 	pipe(input_pipe);
 
+#if defined(OUT_PIPE)
 	/* Create output pipe between two endpoints */
 	pipe(output_pipe);
+#endif /* OUT_PIPE */
 
 	/* Launch Successor to push commands into tray */
 	iInput_Start("none", 25);
 
+#if defined(OUT_PIPE)
 //	iOutput_Start("", 25);
+#endif /* OUT_PIPE */
 
 	client(session);
 
